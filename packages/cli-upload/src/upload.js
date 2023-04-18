@@ -88,14 +88,32 @@ export const upload = command('upload', {
       img.type = ext === '.png' ? 'png' : 'jpeg';
       img.name = path.join(dir, name);
 
-      percy.upload({
+      // console.log(percy);
+
+      // for existing web projects
+      let options = {
         name: config.stripExtensions ? img.name : relativePath,
         // width and height is clamped to API min and max
         widths: [Math.max(10, Math.min(img.width, 2000))],
         minHeight: Math.max(10, Math.min(img.height, 2000)),
         // resources are read from the filesystem as needed
         resources: () => getImageResources(img)
-      });
+      }
+
+      // for BYOS projects
+      options = {
+        name: config.stripExtensions ? img.name : relativePath,
+        tag: {
+          name: "uploaded_image"
+        },
+        tiles: [
+          {
+            filepath: img.absolutePath
+          }
+        ]
+      }
+
+      percy.upload(options);
     }
   }
 
