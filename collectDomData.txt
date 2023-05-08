@@ -1,0 +1,296 @@
+return (function () {
+  function generateSelector(element) {
+    let selector, tag = element.nodeName.toLowerCase();
+    if (element.id) {
+      selector = '#' + element.getAttribute('id');
+    } else if (element.getAttribute('class')) {
+      selector = '.' + element.getAttribute('class').split(' ').join('.');
+    }
+    return selector ? tag + selector : tag;
+  }
+
+  function closestStackingContext(node) {
+    if (!node || node.nodeName === 'HTML') {
+      return {
+        node: document.documentElement,
+        reason: 'root'
+      };
+    }
+
+    // handle shadow root elements.
+    if (node.nodeName === '#document-fragment') {
+      return closestStackingContext(node.host);
+    }
+
+    const computedStyle = getComputedStyle(node);
+
+    // position: fixed or sticky.
+    if (computedStyle.position === 'fixed' || computedStyle.position === 'sticky') {
+      return {
+        node: node,
+        reason: `position: ${ computedStyle.position }`
+      };
+    }
+
+    // positioned (absolutely or relatively) with a z-index value other than "auto".
+    if (computedStyle.zIndex !== 'auto' && computedStyle.position !== 'static') {
+      return {
+        node: node,
+        reason: `position: ${ computedStyle.position }; z-index: ${ computedStyle.zIndex }`
+      };
+    }
+
+    // elements with an opacity value less than 1.
+    if (computedStyle.opacity !== '1') {
+      return {
+        node: node,
+        reason: `opacity: ${ computedStyle.opacity }`
+      };
+    }
+
+    // elements with a transform value other than "none".
+    if (computedStyle.transform !== 'none') {
+      return {
+        node: node,
+        reason: `transform: ${ computedStyle.transform }`
+      };
+    }
+
+    // elements with a mix-blend-mode value other than "normal".
+    if (computedStyle.mixBlendMode !== 'normal') {
+      return {
+        node: node,
+        reason: `mixBlendMode: ${ computedStyle.mixBlendMode }`
+      };
+    }
+
+    // elements with a filter value other than "none".
+    if (computedStyle.filter !== 'none') {
+      return {
+        node: node,
+        reason: `filter: ${ computedStyle.filter }`
+      };
+    }
+
+    // elements with a perspective value other than "none".
+    if (computedStyle.perspective !== 'none') {
+      return {
+        node: node,
+        reason: `perspective: ${ computedStyle.perspective }`
+      };
+    }
+
+    // elements with a clip-path value other than "none".
+    if (computedStyle.clipPath !== 'none') {
+      return {
+        node: node,
+        reason: `clip-path: ${ computedStyle.clipPath } `
+      };
+    }
+
+    // elements with a mask value other than "none".
+    const mask = computedStyle.mask || computedStyle.webkitMask;
+    if (mask !== 'none' && mask !== undefined) {
+      return {
+        node: node,
+        reason: `mask:  ${ mask }`
+      };
+    }
+
+    // elements with a mask-image value other than "none".
+    const maskImage = computedStyle.maskImage || computedStyle.webkitMaskImage;
+    if (maskImage !== 'none' && maskImage !== undefined) {
+      return {
+        node: node,
+        reason: `mask-image: ${ maskImage }`
+      };
+    }
+
+    // elements with a mask-border value other than "none".
+    const maskBorder = computedStyle.maskBorder || computedStyle.webkitMaskBorder;
+    if (maskBorder !== 'none' && maskBorder !== undefined) {
+      return {
+        node: node,
+        reason: `mask-border: ${ maskBorder }`
+      };
+    }
+
+    // elements with isolation set to "isolate".
+    if (computedStyle.isolation === 'isolate') {
+      return {
+        node: node,
+        reason: `isolation: ${ computedStyle.isolation }`
+      };
+    }
+
+    // transform or opacity in will-change even if you don't specify values for these attributes directly.
+    if (computedStyle.willChange === 'transform' || computedStyle.willChange === 'opacity') {
+      return {
+        node: node,
+        reason: `willChange: ${ computedStyle.willChange }`
+      };
+    }
+
+    // elements with -webkit-overflow-scrolling set to "touch".
+    if (computedStyle.webkitOverflowScrolling === 'touch') {
+      return {
+        node: node,
+        reason: '-webkit-overflow-scrolling: touch'
+      };
+    }
+
+    // an item with a z-index value other than "auto".
+    if (computedStyle.zIndex !== 'auto') {
+      const parentStyle = getComputedStyle(node.parentNode);
+      // with a flex|inline-flex parent.
+      if (parentStyle.display === 'flex' || parentStyle.display === 'inline-flex') {
+        return {
+          node: node,
+          reason: `flex-item; z-index: ${ computedStyle.zIndex }`,
+        };
+        // with a grid parent.
+      } else if (parentStyle.grid !== 'none / none / none / row / auto / auto') {
+        return {
+          node: node,
+          reason: `child of grid container; z-index: ${ computedStyle.zIndex }`,
+        };
+      }
+    }
+
+    // contain with a value of layout, or paint, or a composite value that includes either of them
+    const contain = computedStyle.contain;
+    if (['layout', 'paint', 'strict', 'content'].indexOf(contain) > -1 ||
+      contain.indexOf('paint') > -1 ||
+      contain.indexOf('layout') > -1
+    ) {
+      return {
+        node: node,
+        reason: `contain: ${ contain }`,
+      };
+    }
+
+    return closestStackingContext(node.parentNode);
+  }
+
+  // get zContext object which explains the that at what stackingContext it is present
+  function zContext(element) {
+    if (!element || element.nodeType !== 1) {
+      return {};
+    }
+    if (element && element.nodeType === 1) {
+      const closest = closestStackingContext(element);
+      const createsStackingContext = element === closest.node;
+      const reason = createsStackingContext ? closest.reason : 'not a stacking context';
+      let parentContext = closest.node;
+      const computedStyle = getComputedStyle(element);
+      if (createsStackingContext && element.nodeName !== 'HTML') {
+        parentContext = closestStackingContext(element.parentNode).node;
+      }
+      return {
+        stackingContext: createsStackingContext,
+        createsStackingContextReason: reason,
+        parentStackingContext: generateSelector(parentContext),
+        'z-index': computedStyle.zIndex !== 'auto' ? parseInt(computedStyle.zIndex, 10) : computedStyle.zIndex
+      };
+    }
+  }
+
+  // get Background details that if it is transparent or not i.e. alpha value is assigned or not
+  function getBackgroundDetails(computedStyle) {
+    const bg = computedStyle.getPropertyValue('background-color');
+    if (bg && bg.split(',').length >= 3 && bg.split(',')[3] != undefined) {
+      return parseInt(bg.split(',')[3].trim());
+    }
+    return 0;
+  }
+
+  // calling zContext to get StackingContext details
+  function getStackingContextDetails(element) {
+    return zContext(element);
+  }
+
+  // get the data which we store for all the elments (node, bounding-box, attributes, children)
+  function getElementData(element) {
+    const computedStyle = getComputedStyle(element);
+    const alphaBackground = getBackgroundDetails(computedStyle);
+    return {
+      'node': element.tagName,
+      'bounding-box': element.getBoundingClientRect(),
+      'attributes': {
+        'opacity': parseInt(computedStyle.getPropertyValue('opacity')),
+        'alpha-background': alphaBackground,
+        'position': computedStyle.getPropertyValue('position'),
+        'transform': computedStyle.getPropertyValue('transform'),
+        'mix_blend_mode': computedStyle.getPropertyValue('mix_blend_mode'),
+        'fill': computedStyle.getPropertyValue('fill'),
+        'fill-opacity': computedStyle.getPropertyValue('fill-opacity'),
+        'display': computedStyle.getPropertyValue('display'),
+        'visibility': computedStyle.getPropertyValue('visibility'),
+        'z-index': computedStyle.zIndex !== 'auto' ? parseInt(computedStyle.zIndex, 10) : computedStyle.zIndex,
+      },
+      'zContext': getStackingContextDetails(element),
+      'children': [],
+    }
+  }
+
+  // traversing DOM using DFS and collecting elementData
+  function dfs(node) {
+    let obj = getElementData(node);
+    let children = node.children;
+    for (let i = 0; i < children.length; i++) {
+      obj.children.push(dfs(children[i]));
+    }
+    return obj;
+  }
+
+  // main function which triggers domTraversal
+  function traverseDom() {
+    let domTree = dfs(document.documentElement);
+    let screenshotData = {
+      'screenshotData': {
+        'scrollX': window.scrollX,
+        'scrollY': window.scrollY,
+        'innerHeight': window.innerHeight,
+        'innerWidth': window.innerWidth
+      },
+      'domTree': domTree
+    }
+    return screenshotData;
+  }
+
+  // getMaxHeight of DOM
+  function getMaxHeight() {
+    const maxHeight = Math.max(
+      document.body.scrollHeight,
+      document.body.clientHeight,
+      document.body.offsetHeight,
+      document.documentElement.scrollHeight,
+      document.documentElement.clientHeight,
+      document.documentElement.offsetHeight
+    );
+    return maxHeight;
+  }
+
+  // getMaxWidth of DOM
+  function getMaxWidth() {
+    const maxWidth = Math.max(
+      document.body.scrollWidth,
+      document.body.clientWidth,
+      document.body.offsetWidth,
+      document.documentElement.scrollWidth,
+      document.documentElement.clientWidth,
+      document.documentElement.offsetWidth
+    );
+    return maxWidth;
+  }
+
+  // getDomMetaData which will return the whole DOM tree
+  function getDomMetaData() {
+    data = traverseDom();
+    data['domTree']['bounding-box']['width'] = Math.max(data['domTree']['bounding-box']['width'], getMaxWidth());
+    data['domTree']['bounding-box']['height'] = Math.max(data['domTree']['bounding-box']['height'], getMaxHeight());
+    return data;
+  }
+
+  return getDomMetaData();
+})();

@@ -117,7 +117,7 @@ export function createPercyServer(percy, port) {
     }))
   // creating driverWrapper.js
     .route('post', '/percy/driverWrapper', async (req, res) => res.json(200, {
-      success: await percy.driverWrapper(req.body).then(() => true)
+      success: await percy.driverWrapper(req.body, percy.build?.id).then(() => true)
     }))
   // stops percy at the end of the current event loop
     .route('/percy/stop', (req, res) => {

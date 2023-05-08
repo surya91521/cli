@@ -3,7 +3,7 @@ import start from './start.js';
 import stop from './stop.js';
 import ping from './ping.js';
 
-export const exec = command('exec', {
+const legacyWebExec = command('exec', {
   description: 'Start and stop Percy around a supplied command',
   usage: '[options] -- <command>',
   commands: [start, stop, ping],
@@ -109,5 +109,42 @@ async function* spawn(cmd, args) {
     return [0, err];
   }
 }
+
+const poaStart = command('start', {
+  description: 'Starts a locally running Percy process for native apps',
+  examples: ['$0 &> percy.log'],
+
+  flags: legacyWebExec.definition
+  // grouped flags are built-in flags
+    .flags.filter(f => !f.group),
+
+  percy: {
+    server: true,
+    projectType: 'poa',
+    skipDiscovery: true
+  }
+}, start.callback);
+
+const poaExec = command('exec', {
+  description: 'Start and stop Percy around a supplied command for native apps',
+  usage: '[options] -- <command>',
+  commands: [poaStart, stop, ping],
+
+  percy: {
+    server: true,
+    projectType: 'poa',
+    skipDiscovery: true
+  }
+}, legacyWebExec.callback);
+
+let execRe;
+
+if (process.env.PERCY_TOKEN.slice(0, 3).toLowerCase() === 'poa') {
+  execRe = poaExec;
+} else {
+  execRe = legacyWebExec;
+}
+
+export const exec = execRe;
 
 export default exec;

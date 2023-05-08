@@ -25,7 +25,7 @@ export default class DriverWrapper {
     const options = {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json; charset=utf-8'
       },
       body: JSON.stringify(command)
     };
@@ -33,5 +33,12 @@ export default class DriverWrapper {
     const response = (await fetch(baseUrl, options)).json();
     console.log(response);
     return response;
+  }
+
+  // command =>
+  async takeScreenshot() {
+    const baseUrl = `${this.executorUrl}/session/${this.sessionId}/screenshot`;
+    const screenShot = await (await fetch(baseUrl)).json();
+    return screenShot.value;
   }
 }

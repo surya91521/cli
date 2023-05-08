@@ -1,9 +1,17 @@
-import { WebDriver } from 'selenium-webdriver';
-import { HttpClient, Executor } from 'selenium-webdriver/http/index.js';
 import fs from 'fs';
 import { postComparison } from '@percy/sdk-utils';
 import Driver from './driverResolver/driver.js';
 import CommonMetaDataResolver from './metadata/commonMetaDataResolver.js';
+import { PercyClient } from '@percy/client';
+import fetch from 'node-fetch';
+import crypto from 'crypto';
+
+function sha256hash(content) {
+  return crypto
+    .createHash('sha256')
+    .update(content, 'utf-8')
+    .digest('hex');
+}
 
 class Tile {
   constructor({
@@ -36,23 +44,19 @@ export default class PoaDriver {
     commandExecutorUrl,
     capabilities,
     snapshotName,
-    sessionCapabilites
+    sessionCapabilites,
+    buildId
   ) {
     this.sessionId = sessionId;
     this.commandExecutorUrl = commandExecutorUrl;
     this.capabilities = capabilities;
     this.snapshotName = snapshotName;
     this.sessionCapabilites = sessionCapabilites;
+    this.buildId = buildId;
     this.metaData = {};
-    this.createDriver();
     this.createDriver2();
-    this.takeScreenshot();
-  }
-
-  createDriver() {
-    this.driver = new WebDriver(
-      this.sessionId,
-      new Executor(Promise.resolve(this.commandExecutorUrl).then(url => new HttpClient(this.commandExecutorUrl, null, null))));
+    // this.takeScreenshot();
+    this.overlayScreenshot();
   }
 
   async createDriver2() {
@@ -64,6 +68,49 @@ export default class PoaDriver {
 
   async takeScreenshot() {
     await this.localScreenshot();
+  }
+
+  async overlayScreenshot() {
+    let img = await this.contextualScreenshot();
+    img = img.image;
+    const fileName1 = `./outScreenshot_${this.snapshotName}_merged.png`;
+    fs.writeFileSync(fileName1, img, { encoding: 'base64' });
+    this.triggerAppPercy();
+  }
+
+  async contextualScreenshot() {
+    const fileName = `./outScreenshot_${this.snapshotName}.png`;
+    await this.driver2.helper.takeScreenshot().then(
+      function(image, err) {
+        fs.writeFileSync(fileName, image, { encoding: 'base64' });
+      }
+    );
+    const command = {
+      domData: await this.collectDomData(),
+      name: this.snapshotName,
+      image: fs.readFileSync(fileName, { encoding: 'base64' })
+    };
+    this.dom_sha = sha256hash(JSON.stringify(command.domData));
+    fs.writeFileSync(`${fileName}_domsha.json`, JSON.stringify(command.domData));
+    const client = new PercyClient({ token: process.env.PERCY_TOKEN });
+    console.log(this.buildId);
+    console.log('above is buildId');
+    const x = await client.uploadResource(
+      this.buildId,
+      { filepath: `${fileName}_domsha.json` }
+    );
+    console.log(x);
+    const options = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8'
+      },
+      body: JSON.stringify(command)
+    };
+    const baseUrl = 'http://127.0.0.1:5000/overlay';
+    const response = await fetch(baseUrl, options);
+    const img = await response.json();
+    return img;
   }
 
   async localScreenshot() {
@@ -84,6 +131,12 @@ export default class PoaDriver {
   async triggerAppPercy() {
     // const app = new AppiumDriver(this.driver);
     this.percyScreenshot(this.snapshotName);
+  }
+
+  async collectDomData() {
+    const script = fs.readFileSync('collectDomData.txt', { encoding: 'utf8' });
+    const data = await this.driver2.helper.executeScript({ script: script, args: [] });
+    return data.value;
   }
 
   async getTag() {
@@ -113,7 +166,8 @@ export default class PoaDriver {
   }
 
   getTiles() {
-    const path = `./outScreenshot_${this.snapshotName}.png`;
+    // const path = `./outScreenshot_${this.snapshotName}.png`;
+    const path = `./outScreenshot_${this.snapshotName}_merged.png`;
     const fullscreen = false;
     return [
       new Tile({
@@ -138,7 +192,8 @@ export default class PoaDriver {
       tiles,
       externalDebugUrl: eUrl,
       environmentInfo: 'staging-poc-poa',
-      clientInfo: 'local-poc-poa'
+      clientInfo: 'local-poc-poa',
+      domSha: this.dom_sha
     });
   }
 }

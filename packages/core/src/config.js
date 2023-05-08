@@ -393,6 +393,7 @@ export const comparisonSchema = {
   properties: {
     name: { type: 'string' },
     externalDebugUrl: { type: 'string' },
+    domSha: { type: 'string' },
     tag: {
       type: 'object',
       additionalProperties: false,

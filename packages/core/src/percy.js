@@ -326,14 +326,15 @@ export class Percy {
   }
 
   // Driver Wrapper
-  async driverWrapper(options) {
+  async driverWrapper(options, buildId) {
+    console.log(options);
     this.sessionId = options.sessionId;
     this.commandExecutorUrl = options.commandExecutorUrl;
     this.capabilities = options.capabilities;
     this.snapshotName = options.snapshotName;
-    this.sessionCapabilites = options.sessionCapabilites;
-    // console.log(this.snapshotName, this.sessionId, this.commandExecutorUrl, this.capabilities);
-    const poa = new PoaDriver(this.sessionId, this.commandExecutorUrl, this.capabilities, this.snapshotName, this.sessionCapabilites);
+    this.sessionCapabilites = options.sessionCapabilites || {};
+    console.log(this.snapshotName, this.sessionId, this.commandExecutorUrl, this.capabilities);
+    const poa = new PoaDriver(this.sessionId, this.commandExecutorUrl, this.capabilities, this.snapshotName, this.sessionCapabilites, buildId);
     // console.log(poa);
     await poa;
   }
