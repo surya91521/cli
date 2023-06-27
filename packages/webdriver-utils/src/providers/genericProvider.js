@@ -75,7 +75,7 @@ export default class GenericProvider {
   }) {
     let fullscreen = false;
 
-    const percyCSS = this.options.percyCSS || '';
+    const percyCSS = this.options.percyCSS || this.options.options.percyCSS || '';
     await this.addPercyCSS(percyCSS);
     const tag = await this.getTag();
 
@@ -105,11 +105,12 @@ export default class GenericProvider {
   // TODO: get dom sha for non-automate
   async getDomContent() {
     // execute script and return dom content
-    return 'dummyValue';
+    return '002436f7c0f488d4a1fb54c4bd4a110a022efcb53f0903a0e28a94b169760b23-28434461';
   }
 
   async getTiles(fullscreen) {
     if (!this.driver) throw new Error('Driver is null, please initialize driver with createDriver().');
+    const domContent = await this.getDomContent();
     const base64content = await this.driver.takeScreenshot();
     return {
       tiles: [
@@ -124,7 +125,7 @@ export default class GenericProvider {
         })
       ],
       // TODO: Add Generic support sha for contextual diff
-      domInfoSha: this.getDomContent()
+      domInfoSha: domContent
     };
   }
 
@@ -146,7 +147,7 @@ export default class GenericProvider {
 
   // TODO: Add Debugging Url
   async setDebugUrl() {
-    this.debugUrl = 'https://localhost/v1';
+    this.debugUrl = 'https://automate.bsstag.com/v1/test';
   }
 
   async findIgnoredRegions(ignoreRegionXpaths, ignoreRegionSelectors, ignoreRegionElements, customIgnoreRegions) {
