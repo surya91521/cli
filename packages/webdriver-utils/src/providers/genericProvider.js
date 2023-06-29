@@ -75,7 +75,7 @@ export default class GenericProvider {
   }) {
     let fullscreen = false;
 
-    const percyCSS = this.options.percyCSS || this.options.options.percyCSS || '';
+    const percyCSS = this.options?.percyCSS || this.options?.options?.percyCSS || '';
     await this.addPercyCSS(percyCSS);
     const tag = await this.getTag();
 
