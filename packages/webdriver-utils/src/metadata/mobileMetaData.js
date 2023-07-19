@@ -5,19 +5,19 @@ export default class MobileMetaData {
   }
 
   browserName() {
-    return this.capabilities.browserName.toLowerCase();
+    return this.capabilities?.browserName?.toLowerCase();
   }
 
   browserVersion() {
-    const bsVersion = this.capabilities.browserVersion?.split('.');
+    const bsVersion = this.capabilities?.browserVersion?.split('.');
     if (bsVersion?.length > 0) {
       return bsVersion[0];
     }
-    return this.capabilities.version.split('.')[0];
+    return this.capabilities?.version.split('.')[0];
   }
 
   osName() {
-    let osName = this.capabilities.os.toLowerCase();
+    let osName = this.capabilities?.os?.toLowerCase();
     if (osName === 'mac' && this.browserName() === 'iphone') {
       osName = 'ios';
     }
@@ -25,15 +25,15 @@ export default class MobileMetaData {
   }
 
   osVersion() {
-    return this.capabilities.osVersion.split('.')[0];
+    return this.capabilities?.osVersion?.split('.')[0];
   }
 
   deviceName() {
-    return this.capabilities.deviceName.split('-')[0];
+    return this.capabilities?.deviceName?.split('-')[0];
   }
 
   orientation() {
-    return this.capabilities.orientation;
+    return this.capabilities?.orientation;
   }
 
   async windowSize() {

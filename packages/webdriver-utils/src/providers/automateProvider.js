@@ -38,17 +38,18 @@ export default class AutomateProvider extends GenericProvider {
     ignoreRegionXpaths = [],
     ignoreRegionSelectors = [],
     ignoreRegionElements = [],
-    customIgnoreRegions = []
+    customIgnoreRegions = [],
+    automateResult = {}
   }) {
     let response = null;
     let error;
     log.info('Preparing to capture screenshots on automate ...');
     try {
       log.debug('Marking automate session as percy ...');
-      let result = await this.percyScreenshotBegin(name);
+      automateResult = await this.percyScreenshotBegin(name);
       log.debug('Fetching the debug url ...');
-      this.setDebugUrl(result);
-      response = await super.screenshot(name, { ignoreRegionXpaths, ignoreRegionSelectors, ignoreRegionElements, customIgnoreRegions });
+      this.setDebugUrl(automateResult);
+      response = await super.screenshot(name, { ignoreRegionXpaths, ignoreRegionSelectors, ignoreRegionElements, customIgnoreRegions, automateResult });
     } catch (e) {
       error = e;
       throw e;

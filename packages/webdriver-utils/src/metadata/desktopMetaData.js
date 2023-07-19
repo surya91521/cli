@@ -5,24 +5,24 @@ export default class DesktopMetaData {
   }
 
   browserName() {
-    return this.capabilities.browserName.toLowerCase();
+    return this.capabilities?.browserName?.toLowerCase();
   }
 
   browserVersion() {
-    return this.capabilities.browserVersion.split('.')[0];
+    return this.capabilities?.browserVersion?.split('.')[0];
   }
 
   osName() {
-    let osName = this.capabilities.os;
+    let osName = this.capabilities?.os;
     if (osName) return osName.toLowerCase();
 
-    osName = this.capabilities.platform;
+    osName = this.capabilities?.platform;
     return osName;
   }
 
   // showing major version
   osVersion() {
-    return this.capabilities.osVersion.toLowerCase();
+    return this.capabilities?.osVersion?.toLowerCase();
   }
 
   // combination of browserName + browserVersion + osVersion + osName

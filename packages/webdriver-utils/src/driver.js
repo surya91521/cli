@@ -3,17 +3,27 @@ import Cache from './util/cache.js';
 const { request } = utils;
 
 export default class Driver {
-  constructor(sessionId, executorUrl) {
+  constructor(sessionId, executorUrl, capabilities) {
     this.sessionId = sessionId;
     this.executorUrl = executorUrl.includes('@') ? `https://${executorUrl.split('@')[1]}` : executorUrl;
+    this.defaultCapabilities = capabilities || {};
+    this.fetchFromAutomate = false;
   }
 
   async getCapabilites() {
-    return await Cache.withCache(Cache.caps, this.sessionId, async () => {
-      const baseUrl = `${this.executorUrl}/session/${this.sessionId}`;
-      const caps = JSON.parse((await request(baseUrl)).body);
-      return caps.value;
-    });
+    const log = utils.logger('webdriver-utils:main');
+    try {
+      return await Cache.withCache(Cache.caps, this.sessionId, async () => {
+        const baseUrl = `${this.executorUrl}/session/${this.sessionId}`;
+        const caps = JSON.parse((await request(baseUrl)).body);
+        return caps.value;
+      });
+    } catch (err) {
+      this.fetchFromAutomate = true;
+      log.debug('Using default capabilities');
+      return this.defaultCapabilities;
+      // return await Cache.withCache(this.defaultCapabilities, `${this.sessionId}_caps`);
+    }
   }
 
   async getWindowSize() {

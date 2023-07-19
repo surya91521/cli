@@ -69,7 +69,7 @@ export default class GenericProvider {
   }
 
   async createDriver() {
-    this.driver = new Driver(this.sessionId, this.commandExecutorUrl);
+    this.driver = new Driver(this.sessionId, this.commandExecutorUrl, this.capabilities);
     log.debug(`Passed capabilities -> ${JSON.stringify(this.capabilities)}`);
     const caps = await this.driver.getCapabilites();
     log.debug(`Fetched capabilities -> ${JSON.stringify(caps)}`);
@@ -110,7 +110,8 @@ export default class GenericProvider {
     ignoreRegionXpaths = [],
     ignoreRegionSelectors = [],
     ignoreRegionElements = [],
-    customIgnoreRegions = []
+    customIgnoreRegions = [],
+    automateResult = {}
   }) {
     let fullscreen = false;
 
@@ -121,7 +122,8 @@ export default class GenericProvider {
     await this.addPercyCSS(percyCSS);
 
     log.debug('Fetching comparisong tag ...');
-    const tag = await this.getTag();
+    const tag = await this.getTag(automateResult);
+    console.log(`${name} : Tag ${JSON.stringify(tag)}`);
     log.debug(`${name} : Tag ${JSON.stringify(tag)}`);
 
     const tiles = await this.getTiles(this.header, this.footer, fullscreen);
@@ -173,25 +175,32 @@ export default class GenericProvider {
     };
   }
 
-  async getTag() {
+  async getTag(automateResult = {}) {
     if (!this.driver) throw new Error('Driver is null, please initialize driver with createDriver().');
     let { width, height } = await this.metaData.windowSize();
     const resolution = await this.metaData.screenResolution();
     const orientation = this.metaData.orientation();
-    [this.header, this.footer] = await this.getHeaderFooter();
-    // for android window size only constitutes of browser viewport, hence adding nav / status / url bar heights
-    height = this.metaData.osName() === 'android' ? height + this.header + this.footer : height;
-    return {
-      name: this.metaData.deviceName(),
-      osName: this.metaData.osName(),
-      osVersion: this.metaData.osVersion(),
+    const tagDetails = JSON.parse(automateResult.value);
+    let deviceName = tagDetails.deviceName;
+    if (deviceName.split('.').length > 2) {
+      deviceName = tagDetails.capabilities.os + '_' + tagDetails.capabilities.os_version + '_' + tagDetails.capabilities.browserName + '_' + tagDetails.capabilities.browserVersion;
+    }
+    const comparisonTag = {
+      name: this.metaData.deviceName() || deviceName,
+      osName: this.metaData.osName() || tagDetails.capabilities.os,
+      osVersion: this.metaData.osVersion() || tagDetails.capabilities.os_version,
       width,
       height,
       orientation: orientation,
-      browserName: this.metaData.browserName(),
-      browserVersion: this.metaData.browserVersion(),
+      browserName: this.metaData.browserName() || tagDetails.capabilities.browserName,
+      browserVersion: this.metaData.browserVersion() || tagDetails.capabilities.browserVersion,
       resolution: resolution
     };
+
+    // for android window size only constitutes of browser viewport, hence adding nav / status / url bar heights
+    [this.header, this.footer] = await this.getHeaderFooter(comparisonTag.name, comparisonTag.osVersion);
+    comparisonTag.height = comparisonTag.osName === 'android' ? height + this.header + this.footer : height;
+    return comparisonTag;
   }
 
   // TODO: Add Debugging Url for non-automate
@@ -293,12 +302,12 @@ export default class GenericProvider {
     return ignoredElementsArray;
   }
 
-  async getHeaderFooter() {
+  async getHeaderFooter(deviceName, osVersion) {
     // passing 0 as key, since across different pages and tests, this config will remain same
     const devicesConfig = await Cache.withCache(Cache.devicesConfig, 0, async () => {
       return (await request(DEVICES_CONFIG_URL)).body;
     });
-    let deviceKey = `${this.metaData.deviceName()}-${this.metaData.osVersion()}`;
+    let deviceKey = `${deviceName}-${osVersion}`;
     let browserName = this.capabilities.browserName;
     return devicesConfig[deviceKey]
       ? (
