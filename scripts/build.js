@@ -49,15 +49,14 @@ async function main({ node, bundle } = argv) {
         colors.green(`${config.input} → ${config.output.file}`)
       } (${Date.now() - start}ms)`);
     }
-    const bundleFile = await readFile('./dist/bundle.js')
-    const { code } = babelCore.transformSync(bundleFile, {
-      plugins: [
-        '@babel/plugin-transform-nullish-coalescing-operator',
-        '@babel/plugin-transform-object-rest-spread'
-      ],
-      sourceMaps: true,
-    });
-    await writeFile('./dist/bundle.js', code)
+    await writeFile('./dist/bundle.js',
+      babelCore.transformSync(await readFile('./dist/bundle.js'), {
+        plugins: [
+          '@babel/plugin-transform-nullish-coalescing-operator',
+          '@babel/plugin-transform-object-rest-spread'
+        ],
+        sourceMaps: true
+      }).code);
   }
 }
 
