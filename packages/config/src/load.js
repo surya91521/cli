@@ -51,7 +51,8 @@ export function load({
   overrides = {},
   reload = false,
   bail = false,
-  print = false
+  print = false,
+  projectType
 } = {}) {
   // load cached config; when no path is specified, get the last config cached
   let config = path ? cache.get(path) : Array.from(cache)[cache.size - 1]?.[1];
@@ -93,7 +94,7 @@ export function load({
 
   // normalize and merge with overrides then validate
   config = normalize(config, { overrides, schema: '/config' });
-  let errors = config && validate(config);
+  let errors = config && validate(config, '/config', { projectType });
 
   if (errors) {
     log.warn('Invalid config:');

@@ -30,7 +30,8 @@ export const configSchema = {
       },
       percyCSS: {
         type: 'string',
-        default: ''
+        default: '',
+        validProjectTypes: ['web', 'automate']
       },
       enableJavaScript: {
         type: 'boolean',
@@ -49,6 +50,53 @@ export const configSchema = {
       },
       scope: {
         type: 'string'
+      },
+      freezeAnimation: {
+        type: 'boolean',
+        default: false,
+        validProjectTypes: ['web', 'automate']
+      },
+      ignoreRegions: {
+        type: 'object',
+        additionalProperties: false,
+        validProjectTypes: ['web', 'automate'],
+        properties: {
+          ignoreRegionSelectors: {
+            type: 'array',
+            default: [],
+            items: {
+              type: 'string'
+            }
+          },
+          ignoreRegionXpaths: {
+            type: 'array',
+            default: [],
+            items: {
+              type: 'string'
+            }
+          }
+        }
+      },
+      considerRegions: {
+        type: 'object',
+        additionalProperties: false,
+        validProjectTypes: ['web', 'automate'],
+        properties: {
+          considerRegionSelectors: {
+            type: 'array',
+            default: [],
+            items: {
+              type: 'string'
+            }
+          },
+          considerRegionXPaths: {
+            type: 'array',
+            default: [],
+            items: {
+              type: 'string'
+            }
+          }
+        }
       }
     }
   },

@@ -45,6 +45,8 @@ const ajv = new AJV({
     code: cxt => {
       let { data, gen, schema } = cxt;
 
+      debugger;
+
       for (let prop of schema) {
         gen.if(AJV._`${data}.${AJV._([prop])} !== undefined`, () => {
           cxt.setParams({ disallowedProperty: AJV._`${prop}` }, true);
@@ -170,7 +172,8 @@ function shouldHideError(key, path, error) {
 }
 
 // Validates data according to the associated schema and returns a list of errors, if any.
-export function validate(data, key = '/config') {
+export function validate(data, key = '/config', { projectType } = {}) {
+  debugger;
   if (!ajv.validate(key, data)) {
     let errors = new Map();
 

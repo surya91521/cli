@@ -84,7 +84,7 @@ export class PercyClient {
   }
 
   // Checks for a Percy token and returns it.
-  getToken(raiseIfMissing = true) {
+  getToken({ raiseIfMissing = true } = {}) {
     let token = this.token || this.env.token;
     if (!token && raiseIfMissing) throw new Error('Missing Percy token');
     return token;
@@ -512,8 +512,9 @@ export class PercyClient {
   }
 
   // decides project type
-  tokenType() {
-    let token = this.getToken(false) || '';
+  // used for config validation, decide to skip asset discovery e.t.c
+  tokenType({ fallbackIfTokenEmpty = true } = {}) {
+    let token = this.getToken({ raiseIfMissing: false }) || '';
 
     const type = token.split('_')[0];
     switch (type) {
@@ -526,7 +527,8 @@ export class PercyClient {
       case 'ss':
         return 'generic';
       default:
-        return 'web';
+        if (token || fallbackIfTokenEmpty) return 'web';
+        return null;
     }
   }
 }

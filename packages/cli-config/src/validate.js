@@ -11,8 +11,9 @@ export const validate = command('validate', {
   examples: [
     '$0',
     '$0 ./config/percy.yml'
-  ]
-}, async ({ args, log, exit }) => {
+  ],
+  percy: true
+}, async ({ args, percy, log, exit }) => {
   // verify a config file can be located
   let { config, filepath } = PercyConfig.search(args.filepath);
   if (!config) exit(1, 'Config file not found');
@@ -21,7 +22,8 @@ export const validate = command('validate', {
   let result = PercyConfig.load({
     path: filepath,
     print: true,
-    bail: true
+    bail: true,
+    projectType: percy.client.tokenType()
   });
 
   // exit 1 when config is empty

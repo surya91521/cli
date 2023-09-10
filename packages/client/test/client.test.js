@@ -1301,55 +1301,69 @@ describe('PercyClient', () => {
       });
     });
 
-    it('should return web for default token', () => {
-      client.token = '<<PERCY_TOKEN>>';
-      expect(client.tokenType()).toBe('web');
+    function commonTests(options) {
+      it('should return web for web tokens', () => {
+        client.token = 'web_abc';
+        expect(client.tokenType()).toBe('web');
+      });
+
+      it('should return app for app tokens', () => {
+        client.token = 'app_abc';
+        expect(client.tokenType(options)).toBe('app');
+      });
+
+      it('should return automate for auto tokens', () => {
+        client.token = 'auto_abc';
+        expect(client.tokenType(options)).toBe('automate');
+      });
+
+      it('should return generic for ss tokens', () => {
+        client.token = 'ss_abc';
+        expect(client.tokenType(options)).toBe('generic');
+      });
+
+      it('should return web for default token', () => {
+        client.token = 'abcdef123';
+        expect(client.tokenType(options)).toBe('web');
+      });
+    }
+
+    describe('fallbackIfTokenEmpty=true', () => {
+      commonTests({});
+
+      it('should return web for no token', () => {
+        client.token = '';
+        expect(client.tokenType()).toBe('web');
+      });
     });
 
-    it('should return web for web tokens', () => {
-      client.token = 'web_abc';
-      expect(client.tokenType()).toBe('web');
-    });
+    describe('fallbackIfTokenEmpty=false', () => {
+      commonTests({ fallbackIfTokenEmpty: false });
 
-    it('should return app for app tokens', () => {
-      client.token = 'app_abc';
-      expect(client.tokenType()).toBe('app');
-    });
-
-    it('should return automate for auto tokens', () => {
-      client.token = 'auto_abc';
-      expect(client.tokenType()).toBe('automate');
-    });
-
-    it('should return generic for ss tokens', () => {
-      client.token = 'ss_abc';
-      expect(client.tokenType()).toBe('generic');
-    });
-
-    it('should return web for default token', () => {
-      client.token = 'abcdef123';
-      expect(client.tokenType()).toBe('web');
-    });
-
-    it('should return web for no token', () => {
-      client.token = '';
-      expect(client.tokenType()).toBe('web');
+      it('should return null for no token', () => {
+        client.token = '';
+        expect(client.tokenType({ fallbackIfTokenEmpty: false })).toBe(null);
+      });
     });
   });
 
   describe('#getToken', () => {
-    it('should throw error when called with true', () => {
+    it('should throw error when called with true and token is absent', () => {
       const client = new PercyClient({});
       expect(() => {
         client.getToken();
       }).toThrowError('Missing Percy token');
     });
 
-    it('should not throw error when called with false', () => {
-      const client = new PercyClient({
-        token: 'PERCY_TOKEN'
-      });
-      expect(client.getToken(false)).toBe('PERCY_TOKEN');
+    it('should not throw error when called with false and token is present', () => {
+      const client = new PercyClient({});
+      expect(client.getToken({ raiseIfMissing: false })).toBe(null);
+    });
+
+    it('should not throw error when called with false and token is present', () => {
+      const client = new PercyClient({ token: 'abcd' });
+      expect(client.getToken({ raiseIfMissing: true })).toBe('abcd');
+      expect(client.getToken({ raiseIfMissing: false })).toBe('abcd');
     });
   });
 });

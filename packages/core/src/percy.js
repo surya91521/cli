@@ -68,9 +68,23 @@ export class Percy {
     // options which will become accessible via the `.config` property
     ...options
   } = {}) {
+    debugger;
+    this.client = new PercyClient({ token, clientInfo, environmentInfo });
+
+    // legacy app PERCY_TOKEN's doesn't contain prefix
+    // TODO: remove this condition, once all the customer migrate to new token system.
+    if (projectType !== 'app') {
+      // projectType being passed doesn't consider token prefix, thus calling following to explicitly
+      // infer the projectType for config validation.
+      this.projectType = this.client.tokenType({ fallbackIfTokenEmpty: false });
+    } else {
+      this.projectType = projectType;
+    }
+
     let { percy, ...config } = PercyConfig.load({
       overrides: options,
-      path: configFile
+      path: configFile,
+      projectType: this.projectType
     });
 
     deferUploads ??= percy?.deferUploads;
@@ -79,15 +93,13 @@ export class Percy {
     if (testing) loglevel = 'silent';
     if (loglevel) this.loglevel(loglevel);
 
-    this.projectType = projectType;
     this.testing = testing ? {} : null;
     this.dryRun = !!testing || !!dryRun;
     this.skipUploads = this.dryRun || !!skipUploads;
-    this.skipDiscovery = this.dryRun || !!skipDiscovery;
+    this.skipDiscovery = this.dryRun || this.shouldSkipAssetDiscovery(this.projectType) || !!skipDiscovery;
     this.delayUploads = this.skipUploads || !!delayUploads;
     this.deferUploads = this.skipUploads || !!deferUploads;
 
-    this.client = new PercyClient({ token, clientInfo, environmentInfo });
     if (server) this.server = createPercyServer(this, port);
     this.browser = new Browser(this);
 
@@ -122,7 +134,10 @@ export class Percy {
     if (!config) return this.config;
 
     // validate provided config options
-    let errors = PercyConfig.validate(config);
+    let errors = PercyConfig.validate(
+      config,
+      '/config',
+      { projectType: this.projectType });
 
     if (errors) {
       this.log.warn('Invalid config:');
