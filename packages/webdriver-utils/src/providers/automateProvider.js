@@ -81,6 +81,7 @@ export default class AutomateProvider extends GenericProvider {
           name,
           percyBuildId: this.buildInfo.id,
           percyBuildUrl: this.buildInfo.url,
+          projectId: 'percy-dev',
           state: 'begin'
         });
         this._markedPercy = result.success;
@@ -99,6 +100,7 @@ export default class AutomateProvider extends GenericProvider {
         await this.browserstackExecutor('percyScreenshot', {
           name,
           percyScreenshotUrl,
+          projectId: 'percy-dev',
           status: percyScreenshotUrl ? 'success' : 'failure',
           statusMessage,
           state: 'end'
@@ -118,6 +120,7 @@ export default class AutomateProvider extends GenericProvider {
       return await this.browserstackExecutor('percyScreenshot', {
         state: 'screenshot',
         percyBuildId: this.buildInfo.id,
+        projectId: 'percy-dev',
         screenshotType: 'singlepage',
         scaleFactor: dpr,
         options: this.options
